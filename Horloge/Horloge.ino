@@ -1,36 +1,68 @@
+```cpp
 
 
 #include <DS1302.h>
-//#include <IRremote.h>
+//#include <IRremote.h>  // not now !
 #include <Pushbutton.h> 
-//#include <EEPROM.h>
+//#include <EEPROM.h> 
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
+
 /*
-  last modification : 03-05-2021
+  last modification : 04-05-2021
   by : Zitouni Abdelkrim
   
   ps : Comment your last modifications to discuss them first
 */
 
 
-DS1302 rtc(8, 7, 6);                  //initialising the DS1302 pins                  
-LiquidCrystal_I2C lcd(0x3F, 16, 2);   //geting the @ of the LCD
-
-
-//const int buttonPin = 2; //set the button to pin 2  
+DS1302 rtc(8, 7, 6);                  // initialising the DS1302 pins                  
+LiquidCrystal_I2C lcd(0x3F, 16, 2);   // set the @ of the I2C LCD
 
 
 
+const int setButton_pin = 2;
+const int hourButton_pin = 3;
+const int stopwatchButton_pin = 4;
+const int timerButton_pin = 5;
+const int alarmButton_pin = A1;
 
-enum selection {.    // for mode selection (still not )
-  OnOff,
-  display,
-  set_DateTime,
-  add_Timer,
-  start_Stopwatch
+
+Pushbutton setButton(setButton_pin);
+Pushbutton hourButton(hourButton_pin);
+Pushbutton stopwatchButton(stopwatchButton_pin);
+Pushbutton timerButton(timerButton_pin);
+Pushbutton alarmButton(alarmButton_pin);
+
+// time variables
+int CountdownTime = 1;
+int hr = 0;
+int min = 0;
+int setHr = 0;
+int setMin = 0;
+// date variables
+int dy = 1;
+int mon = 1;
+int yr = 2000;
+int setDy = 1;
+int setMon = 1;
+int setYr = 2000;
+// alarm variables
+int alarmHr = 0;
+int alarmMin = 0;
+Time::Day DOW = Time::kSunday;
+//stopwatch variables
+
+
+
+// enum selection {    // for mode selection (still not working)
+//   OnOff,
+//   display,
+//   set_DateTime,
+//   add_Timer,
+//   start_Stopwatch
   
-};
+// };
 
 enum selection mode = OnOff;
 
@@ -54,6 +86,9 @@ void setup() {
 //----------------LOOP----------------\\.
 void loop() {
   
+  switch(mode) {
+    case display: 
+  }
   printTime();
   delay(1000);
   
@@ -146,3 +181,5 @@ void printTime() {
 
 
 
+
+```
