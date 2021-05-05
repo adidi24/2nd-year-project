@@ -9,7 +9,7 @@
 #include <Wire.h>
 
 /*
-  last modification : 04-05-2021
+  last modification : 05-05-2021
   by : Zitouni Abdelkrim
   
   ps : Comment your last modifications to discuss them first
@@ -22,9 +22,9 @@ LiquidCrystal_I2C lcd(0x3F, 16, 2);   // set the @ of the I2C LCD
 
 
 const int setButton_pin = 2;
-const int hourButton_pin = 3;
+const int hourButton_pin = 5;
 const int stopwatchButton_pin = 4;
-const int timerButton_pin = 5;
+const int timerButton_pin = 3;
 const int alarmButton_pin = A1;
 
 
@@ -57,17 +57,17 @@ Time::Day DOW = Time::kSunday;
 
 // enum selection {    // for mode selection (still not working)
 //   OnOff,
-//   display,
+//   Hour,
 //   set_DateTime,
 //   add_Timer,
 //   start_Stopwatch
   
 // };
 
-enum selection mode = OnOff;
+//enum selection mode = OnOff;
 
 
-//----------------SETUP----------------\\.
+//*******************SETUP*******************\\.
 void setup() {
   lcd.init();
   lcd.backlight();
@@ -77,24 +77,21 @@ void setup() {
   rtc.writeProtect(false);
   rtc.halt(false);
 
-  Time t(2020, 05, 03, 02, 46, 00, Time::kMonday);
+  Time t(2020, 05, 05, 01, 27, 00, Time::kTuesday);
   rtc.time(t);
 }
 
 
-/////////////////////////////////////////
-//----------------LOOP----------------\\.
+//////////////////////////////////////////////
+//*******************LOOP*******************\\.
 void loop() {
-  
-  switch(mode) {
-    case display: 
-  }
   printTime();
+  //modeSelection();
   delay(1000);
   
 }
-//----------------LOOP----------------\\.
-/////////////////////////////////////////
+//*******************LOOP*******************\\.
+//////////////////////////////////////////////
 
 
 
@@ -114,10 +111,9 @@ String DayAsString(const Time::Day day) {
 }
 
 
-
 //function -printTime- that prints DateTime to both serial monitor and LCD
 void printTime() {
-  
+  //lcd.clear();
   Time t = rtc.time();    // Get the current time and date from the DS1302
  
   const String day = DayAsString(t.day);   // getting the day of the week
@@ -157,13 +153,136 @@ void printTime() {
   lcd.print(t.yr);
 }
 
+// Function modeSelection : select mode (Date-Time, Timer, StopWhatch) from inputs 
+void modeSelection() {
+  
+  if ((hourButton.getSingleDebouncedPress())) {       // will be change after adding remote control
+    printTime();
+  } else if ((stopwatchButton.getSingleDebouncedPress())) {
+    stopWhatch();
+  } else if ((timerButton.getSingleDebouncedPress())) {
+    Timer();
+  }
+}
 
 
+// Function stopWhatch : Displays stopWhatch (not completed !)***********
+void stopWhatch() {
+  lcd.clear();
+}
 
 
+//Function Timer : displays Timer (not completed !)***********
+void Timer() { 
+  lcd.clear();
+}
 
 
+void setDateTime() { // not completed ! ***********
 
+  Time t = rtc.time();
+  
+  int cursorX = 4, cursorY = 0;
+
+  if (mode == Hour) {
+    while (setButton.isPressed()) {
+      if (timerButton.getSingleDebouncedPress()) {
+        cursorX++;
+        if (cursorX > 7 && cursorY == 0) {
+          cursorY = 1;
+          cursorX = 0;
+        };
+        if (cursorX > 12 && cursorY == 1) {
+          cursorY = 0;
+          cursorX = 4;
+        };
+        lcd.cursor_on();
+        lcd.setCursor(cursorX, cursorY);
+      }
+      if (cursorY == 0) {   
+        switch (cursorX) {
+          case 4:
+            setHr = t.hr;
+            IncDec(setHr);
+            lcd.print(setHr);
+                    
+            break;
+          case 7:
+            setMin = t.min;
+            IncDec(setMin);
+            lcd.print(setMin);
+            break;   
+        } 
+      } else {
+        switch (cursorX) {
+          case 0:
+            break;
+          case 6:
+            setDy = t.date;
+            IncDec(setDy);
+            if (setDy <= lastDayOfTheMonth(setMon)) lcd.print(setDy); else {
+              setDy = 1; 
+              lcd.print(setDy);
+            }
+                    
+            break;
+          case 9:
+            break;
+          case 12:
+            break;             
+          } 
+      }
+    } 
+  }      
+}
+
+
+// Function IncDec : increments/decrements any integer by pressing the left/right button respectively 
+void IncDec(int any) {  
+  if (hourButton.getSingleDebouncedPress()) any++; else if (timerButton.getSingleDebouncedPress()) any--;
+}
+
+// Function lastDayOfTheMonth days per month (Leap Year included)
+int lastDayOfTheMonth(int setMonth) {
+  switch (setMonth) {
+    case 1: //January
+      return 31;
+      break;
+    case 2: //February
+      if ((setYr % 4) == 0) return 29; else return 28;
+      break;
+    case 3: //March
+      return 31;
+      break;
+    case 4: //April
+      return 30;
+      break;
+    case 5: //May
+      return 31;
+      break;
+    case 6: //June
+      return 30;
+      break;
+    case 7: //JulY
+      return 31;
+      break;
+    case 8: //August
+      return 31;
+      break;
+    case 9: //September
+      return 30;
+      break;
+    case 10: //October
+      return 31;
+      break;
+    case 11: //November
+      return 30;
+      break;
+    case 12: //December
+      return 31;
+      break;
+  }
+}
 
 
 
