@@ -1,5 +1,5 @@
 - Hour Mode (left button): 
-	- press set button than {
+	- press and maintain set button than {
 			Hour (0 to 23): press the Left button to add 1 hour / press the Middle button to sub 1 hour.
 			
 			Next : press the Right button to move cursor for setting minutes.
@@ -19,7 +19,7 @@
 	}
 
 - Alarm Mode (Alarm button): 
-	- press set button than {
+	- press and maintain set button than {
 			Hour (0 to 23): press the Left button to add 1 hour / press the Middle button to sub 1 hour.
 			
 			Next : press the Right button to move cursor for setting minutes.
@@ -29,14 +29,14 @@
 	}
 
 - Stopwatch Mode (Middle button):
-	- press set button than {
+	- press and maintain set button than {
 			Start/Stop: press the Left button to start or to stop the stopwatch.
 			Lapse Time: press the Middle button when stopwatch is running.
 			Reset: press the Middle button to reset the stopwatch when it is stopped.
 	}
 	
 - Timer Mode (right button):
-	- press set button than {
+	- press and maintain set button than {
 			Start/Reset: press the Left button to start or to reset the timer.
 			Set timer: press the Middle button to adjust the total time (1 to 99 minutes).
 			Next Mode: press the Right button to move to Hour mode.
