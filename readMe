@@ -30,9 +30,9 @@
 
 - Stopwatch Mode (Middle button):
 	- press and maintain set button than {
-			Start/Stop: press the Left button to start or to stop the stopwatch.
-			Lapse Time: press the Middle button when stopwatch is running.
-			Reset: press the Middle button to reset the stopwatch when it is stopped.
+			Start/Stop: press the Left/middle button to start/stop respectively the stopwatch.
+			Lapse Time: press the right button when stopwatch is running.
+			Reset: press the middle button to reset the stopwatch when it is stopped.
 	}
 	
 - Timer Mode (right button):
