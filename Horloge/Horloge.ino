@@ -10,7 +10,7 @@
 // #include <Wire.h>
 
 /*
-  last modification : 18-05-2021
+  last modification : 31-05-2021
   by : Zitouni Abdelkrim
   
   ps : Comment your last modifications to discuss them first
@@ -353,7 +353,7 @@ void Timer() {
   int i = 0, thisT = 0;
   
   lcd.setCursor(2, 0);
-  lcd.print("timer 1");
+  lcd.print("TIMER 1");
   for (int j = 0; j <= 2; j++) {
     d[j] = 0;
     h[j] = 0;
@@ -364,11 +364,10 @@ void Timer() {
   while (CD[i].remaining() >= 0 && i <= 2 && enter == true) {
     if (alarmButton.getSingleDebouncedPress()) enter = false;
     if (timerButton.getSingleDebouncedPress()) {
-      i++;
-      lcd.clear();                
+      i++;                
       i = i % 3;
       lcd.setCursor(2, 0);
-      lcd.print("timer ");
+      lcd.print("TIMER ");
       lcd.print(i + 1);
     }
     if (hourButton.getSingleDebouncedPress() && CD[i].remaining() == 0) {
@@ -378,12 +377,15 @@ void Timer() {
     if (CD[i].isRunning() == true) {
       if (stopwatchButton.getSingleDebouncedPress()) {  
         CD[i].stop();
-      }  
-      lcd.setCursor(12, 0);
-      lcd.print("ON");     
+      } 
+      lcd.setCursor(11, 0);
+      lcd.print("ON ");     
     } else if (CD[i].isRunning() == false){
       if (stopwatchButton.getSingleDebouncedPress()) {
         lcd.clear();
+        lcd.setCursor(2, 0);
+        lcd.print("TIMER ");
+        lcd.print(i + 1);
         CD[i].cont();
       }
       lcd.setCursor(11, 0);
