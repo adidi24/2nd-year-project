@@ -1,6 +1,7 @@
 ```cpp
 
 #include "CountDown.h"
+#include "Alarm.h"
 #include "virtuabotixRTC.h"  
 #include <IRremote.h> 
 #include <Pushbutton.h>
@@ -18,7 +19,9 @@
 virtuabotixRTC myRTC(6, 7, 8);       // initialising the DS1302 pins
 LiquidCrystal_I2C lcd(0x3F, 16, 2);  // set the @ of the I2C LCD
 StopWatch sw_secs(StopWatch::MILLIS);
-CountDown CD[2];
+CountDown CD[3];
+
+Alarmm AL[3];
 
 #define led_pin 13
 #define buzzer_pin 11
@@ -42,6 +45,7 @@ IRrecv irrecv(RECV_PIN);
 unsigned long key_value = 0;
 
 unsigned long clockDisplay = millis();
+unsigned long AlarmDisplay = millis();
 
 int any = 0;
 
@@ -92,6 +96,9 @@ void setup() {
   lcd.setCursor(0, 0);
   Serial.begin(9600);
 
+  for (int i = 0; i <= 2; i++) {
+    AL[i].setON(false);
+  }
   pinMode(buzzer_pin, OUTPUT);
   irrecv.enableIRIn();
   // myRTC.setDS1302Time(00, 14, 21, 3, 25, 5, 2020);
@@ -108,8 +115,30 @@ void loop() {
     lcd.blink();   
     if (irrecv.decode()) decodeIR();   
     irrecv.resume();   
+
     //digitalWrite(led_pin, HIGH);
   }  
+
+  if (millis() - AlarmDisplay > 800) {
+    AlarmDisplay = millis();
+    for (int i = 0; i <= 2; i++) {
+      if (AL[i].state == Alarmm::RUNNING) {
+        if (AL[i].CheckAlarm(myRTC.hours, myRTC.minutes, myRTC.dayofweek)) {
+          lcd.clear();
+          while (!alarmButton.getSingleDebouncedPress()) {
+            AL[i].setON(false);
+            lcd.setCursor(0, 0);
+            lcd.print("ALARM " + i);
+            lcd.print(" is ON!");
+            tone(buzzer_pin, 3000, 200);            
+          }
+          noTone(buzzer_pin);    
+          lcd.clear();
+        }        
+      }
+          
+    }
+  }
   switch (mode) {
     case Hour:
     setDateTime();   
@@ -120,6 +149,9 @@ void loop() {
       Timer();
       irrecv.resume(); 
       break;
+    case Alarm:
+      alarm();      
+      break;    
     case Stopwatch:
       stopWhatch();
       break;
@@ -370,7 +402,7 @@ void Timer() {
       lcd.print("TIMER ");
       lcd.print(i + 1);
     }
-    if (hourButton.getSingleDebouncedPress() && CD[i].remaining() == 0) {
+    if (hourButton.getSingleDebouncedPress() && (CD[i].remaining() == 0 || CD[i].isRunning() == false)) {
       CD[i].start(d[i], h[i], m[i], s[i]);
     }
 
@@ -379,7 +411,7 @@ void Timer() {
         CD[i].stop();
       } 
       lcd.setCursor(11, 0);
-      lcd.print("ON ");     
+      lcd.print("[ON ]");     
     } else if (CD[i].isRunning() == false){
       if (stopwatchButton.getSingleDebouncedPress()) {
         lcd.clear();
@@ -389,7 +421,7 @@ void Timer() {
         CD[i].cont();
       }
       lcd.setCursor(11, 0);
-      lcd.print("OFF"); 
+      lcd.print("[OFF]"); 
          
     } 
             
@@ -398,8 +430,8 @@ void Timer() {
 
     remain = CD[i].remaining();
     tDays = remain / 86400UL;            // Time conversion
-    tHours = remain / 3600UL;
-    tMins = remain / 60;
+    tHours = (remain % 86400UL) / 3600UL;
+    tMins = ((remain % 86400UL) % 3600UL) / 60;
     tSecs = remain % 60;
         
     
@@ -512,35 +544,136 @@ void Timer() {
      
 };
 
+void alarm() {
+  uint8_t Ah[3], Am[3], Ad[3];
+  lcd.clear();
+  bool enterA = true;
+  int i = 0;
+   
+  lcd.setCursor(2, 0);
+  lcd.print("ALARM 1");
+  cursorX = 0;
+  while (i <= 2 && enterA == true) {
+    if (alarmButton.getSingleDebouncedPress()) enterA = false;
+    if (timerButton.getSingleDebouncedPress()) {
+      i++;                
+      i = i % 3;
+      lcd.setCursor(2, 0);
+      lcd.print("ALARM ");
+      lcd.print(i + 1);
+    }
 
-void addTimer() {
-  irrecv.resume();
-  plus = false;
-  if (irrecv.decode()) {
-    if (irrecv.decodedIRData.decodedRawData == 0xEA15FF00) {
-      plus = true;
-      CdNumber++;
-      while (plus == true) {
-        lcd.setCursor(0, 0);
-        recvDigits(tDays);
-        paddingZero(tDays); 
+    if (AL[i].state == Alarmm::STOPPED) {
+      if (stopwatchButton.getSingleDebouncedPress()) {  
+        AL[i].setON(true);
+        lcd.setCursor(11, 0);
+        lcd.print("[ON ]"); 
+      } 
+    } else {
+      if (stopwatchButton.getSingleDebouncedPress()) {
+      
+        lcd.setCursor(11, 0);
+        lcd.print("[OFF]");
+        AL[i].setON(false);
+      }        
+    }
+      
+        
+    
 
-        lcd.setCursor(4, 0);
-        recvDigits(tHours);
-        paddingZero(tHours);
-        
-        lcd.setCursor(8, 0);
-        recvDigits(tMins);
-        paddingZero(tMins);    
-        
-        lcd.setCursor(12, 0);
-        recvDigits(tSecs);
-        paddingZero(tSecs);        
-      }
-             
-    }    
-  }  
-}
+
+    Ad[i] = AL[i].AlarmDays;
+    Ah[i] = AL[i].AlarmHours;
+    Am[i] = AL[i].AlarmMins;
+    lcd.setCursor(0, 1);
+    lcd.print(DayAsString(Ad[i]).substring(0, 3));   
+    lcd.setCursor(8, 1);
+    paddingZero(Ah[i]);
+    lcd.setCursor(10, 1);
+    lcd.print("h");
+    lcd.setCursor(12, 1);
+    paddingZero(Am[i]);
+    lcd.setCursor(14, 1);
+    lcd.print("m");   
+      
+      
+    while (setButton.isPressed()) {
+      
+      if (timerButton.getSingleDebouncedPress()) {  // from here ..
+        cursorX++;
+        cursorX = cursorX % 5;
+        lcd.blink();
+          // .. to here : we're setting the cursor according to user input
+      }    
+      switch (cursorX) {
+            case 1:
+              
+              while (true) {
+                lcd.setCursor(0, 1);       
+                if ((hourButton.getSingleDebouncedPress())){
+                  Ad[i]++;
+                  if (Ad[i] > 7) Ad[i] = 1;  
+                  lcd.print(DayAsString(Ad[i]).substring(0, 3));         
+                } 
+                if ((stopwatchButton.getSingleDebouncedPress())) {
+                  Ad[i]--;
+                  if (Ad[i] < 1) Ad[i] = 7;
+                  lcd.print(DayAsString(Ad[i]).substring(0, 3));
+                }
+                if (setButton.isPressed()) break;
+              };   
+              break;
+
+            case 2:
+              
+              while (true) {
+                
+                lcd.setCursor(8, 1);
+                if ((hourButton.getSingleDebouncedPress())){
+                  Ah[i]++;
+                  if (Ah[i] > 23 ) Ah[i] = 0;   
+                  paddingZero(Ah[i]);                    
+                } 
+                if ((stopwatchButton.getSingleDebouncedPress())) {
+                  Ah[i]--;
+                  if (Ah[i] < 0 ) Ah[i] = 23;       
+                  paddingZero(Ah[i]);
+                }
+                if (setButton.isPressed()) break;
+              };
+              break;
+            case 3:
+              
+              while (true) {
+                lcd.setCursor(12, 1);
+                if ((hourButton.getSingleDebouncedPress())){
+                  Am[i]++;
+                  if (Am[i] > 59 ) Am[i] = 0;    
+                  paddingZero(Am[i]);        
+                } 
+                if ((stopwatchButton.getSingleDebouncedPress())) {
+                  Am[i]--;
+                  if (Am[i] < 0) Am[i] = 59;    
+                  paddingZero(Am[i]);
+                }
+                if (setButton.isPressed()) break;
+              };
+              break;
+              
+          };
+
+      AL[i].setAlarm(Ad[i], Ah[i], Am[i]);
+      Ad[i] = AL[i].AlarmDays;
+      Ah[i] = AL[i].AlarmHours;
+      Am[i] = AL[i].AlarmMins;
+      if (setButton.getSingleDebouncedRelease()) break;
+    };
+      
+      
+  }
+  
+  
+};
 
 void recvDigits(int nn) {  
   while (index < 2) {
@@ -613,12 +746,12 @@ void setDateTime() {
                 lcd.setCursor(4, 0);       
                 if ((hourButton.getSingleDebouncedPress())){
                   setHr++; 
-                  if (setHr >= 24) setHr = 0; 
+                  if (setHr >= 24UL) setHr = 0UL; 
                   paddingZero(setHr);           
                 } 
                 if ((stopwatchButton.getSingleDebouncedPress())) {
                   setHr--;
-                  if (setHr < 0) setHr = 23;
+                  if (setHr < 0UL) setHr = 23UL;
                   paddingZero(setHr);
                 }
                 if (setButton.isPressed()) break;
@@ -632,12 +765,12 @@ void setDateTime() {
                 lcd.setCursor(7, 0);
                 if ((hourButton.getSingleDebouncedPress())){
                   setMin++;
-                  if (setMin >= 60) setMin = 0;     
+                  if (setMin >= 60UL) setMin = 0UL;     
                   paddingZero(setMin);                    
                 } 
                 if ((stopwatchButton.getSingleDebouncedPress())) {
                   setMin--;
-                  if (setMin < 0) setMin = 59;
+                  if (setMin < 0UL) setMin = 59UL;
                   paddingZero(setMin);
                 }
                 if (setButton.isPressed()) break;
@@ -654,7 +787,7 @@ void setDateTime() {
                 if ((hourButton.getSingleDebouncedPress())){
                   setDOW++;
                   if (setDOW > 7) setDOW = 1;  
-                  lcd.print(DayAsString(setDOW).substring(0, 4));         
+                  lcd.print(DayAsString(setDOW).substring(0, 3));         
                 } 
                 if ((stopwatchButton.getSingleDebouncedPress())) {
                   setDOW--;
@@ -805,7 +938,7 @@ void setDateTime2() {
             if ((irrecv.decodedIRData.decodedRawData == 0xEA15FF00)) {
               setDOW++;
               if (setDOW > 7) setDOW = 1;
-              lcd.print(DayAsString(setDOW).substring(0, 4));
+              lcd.print(DayAsString(setDOW).substring(0, 3));
             }
             if ((irrecv.decodedIRData.decodedRawData == 0xF807FF00)) {
               setDOW--;
@@ -1119,31 +1252,11 @@ void decodeIR() {
   }    
 }
 
-// class timer {
-//   public:
-//     int minute;
-//     int second;  
-//     int check = millis();
 
-//   void timer(int minute; int second) {
-//     this.minute = 0;
-//     this.second = 0;
-//   }         
-  
-//   void start() {
-//     if (millis() - check > 1000) {
-//       this.second--;
-//       if (this.second == 0 && this.minute != 0) {
-//         this.second = 59;
-//         this.minute--;
-//       }
-//     }   
-//   }
 
-//   void buzz() {
-//     digitalWrite(buzzer_pin, HIGH);
-            
-//   }
-// }
+
+
+
+
 
 ```
