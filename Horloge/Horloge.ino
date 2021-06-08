@@ -7,6 +7,7 @@
 #include <Pushbutton.h>
 #include <LiquidCrystal_I2C.h>
 #include <StopWatch.h>
+#include <EEPROM.h>
 
 // #include <Wire.h>
 
@@ -16,15 +17,157 @@
   
   ps : Comment your last modifications to discuss them first
 */
+#define NOTE_B0  31
+#define NOTE_C1  33
+#define NOTE_CS1 35
+#define NOTE_D1  37
+#define NOTE_DS1 39
+#define NOTE_E1  41
+#define NOTE_F1  44
+#define NOTE_FS1 46
+#define NOTE_G1  49
+#define NOTE_GS1 52
+#define NOTE_A1  55
+#define NOTE_AS1 58
+#define NOTE_B1  62
+#define NOTE_C2  65
+#define NOTE_CS2 69
+#define NOTE_D2  73
+#define NOTE_DS2 78
+#define NOTE_E2  82
+#define NOTE_F2  87
+#define NOTE_FS2 93
+#define NOTE_G2  98
+#define NOTE_GS2 104
+#define NOTE_A2  110
+#define NOTE_AS2 117
+#define NOTE_B2  123
+#define NOTE_C3  131
+#define NOTE_CS3 139
+#define NOTE_D3  147
+#define NOTE_DS3 156
+#define NOTE_E3  165
+#define NOTE_F3  175
+#define NOTE_FS3 185
+#define NOTE_G3  196
+#define NOTE_GS3 208
+#define NOTE_A3  220
+#define NOTE_AS3 233
+#define NOTE_B3  247
+#define NOTE_C4  262
+#define NOTE_CS4 277
+#define NOTE_D4  294
+#define NOTE_DS4 311
+#define NOTE_E4  330
+#define NOTE_F4  349
+#define NOTE_FS4 370
+#define NOTE_G4  392
+#define NOTE_GS4 415
+#define NOTE_A4  440
+#define NOTE_AS4 466
+#define NOTE_B4  494
+#define NOTE_C5  523
+#define NOTE_CS5 554
+#define NOTE_D5  587
+#define NOTE_DS5 622
+#define NOTE_E5  659
+#define NOTE_F5  698
+#define NOTE_FS5 740
+#define NOTE_G5  784
+#define NOTE_GS5 831
+#define NOTE_A5  880
+#define NOTE_AS5 932
+#define NOTE_B5  988
+#define NOTE_C6  1047
+#define NOTE_CS6 1109
+#define NOTE_D6  1175
+#define NOTE_DS6 1245
+#define NOTE_E6  1319
+#define NOTE_F6  1397
+#define NOTE_FS6 1480
+#define NOTE_G6  1568
+#define NOTE_GS6 1661
+#define NOTE_A6  1760
+#define NOTE_AS6 1865
+#define NOTE_B6  1976
+#define NOTE_C7  2093
+#define NOTE_CS7 2217
+#define NOTE_D7  2349
+#define NOTE_DS7 2489
+#define NOTE_E7  2637
+#define NOTE_F7  2794
+#define NOTE_FS7 2960
+#define NOTE_G7  3136
+#define NOTE_GS7 3322
+#define NOTE_A7  3520
+#define NOTE_AS7 3729
+#define NOTE_B7  3951
+#define NOTE_C8  4186
+#define NOTE_CS8 4435
+#define NOTE_D8  4699
+#define NOTE_DS8 4978
+#define REST      0
+
+
+// change this to make the song slower or faster
+int tempo = 140;
+
+// change this to whichever pin you want to use
+int buzzer = 11;
+
+// notes of the moledy followed by the duration.
+// a 4 means a quarter note, 8 an eighteenth , 16 sixteenth, so on
+// !!negative numbers are used to represent dotted notes,
+// so -4 means a dotted quarter note, that is, a quarter plus an eighteenth!!
+int melody[] = {
+
+  // Take on me, by A-ha
+  // Score available at https://musescore.com/user/190926/scores/181370
+  // Arranged by Edward Truong
+
+  NOTE_FS5,8, NOTE_FS5,8,NOTE_D5,8, NOTE_B4,8, REST,8, NOTE_B4,8, REST,8, NOTE_E5,8, 
+  REST,8, NOTE_E5,8, REST,8, NOTE_E5,8, NOTE_GS5,8, NOTE_GS5,8, NOTE_A5,8, NOTE_B5,8,
+  NOTE_A5,8, NOTE_A5,8, NOTE_A5,8, NOTE_E5,8, REST,8, NOTE_D5,8, REST,8, NOTE_FS5,8, 
+  REST,8, NOTE_FS5,8, REST,8, NOTE_FS5,8, NOTE_E5,8, NOTE_E5,8, NOTE_FS5,8, NOTE_E5,8,
+  NOTE_FS5,8, NOTE_FS5,8,NOTE_D5,8, NOTE_B4,8, REST,8, NOTE_B4,8, REST,8, NOTE_E5,8, 
+  
+  REST,8, NOTE_E5,8, REST,8, NOTE_E5,8, NOTE_GS5,8, NOTE_GS5,8, NOTE_A5,8, NOTE_B5,8,
+  NOTE_A5,8, NOTE_A5,8, NOTE_A5,8, NOTE_E5,8, REST,8, NOTE_D5,8, REST,8, NOTE_FS5,8, 
+  REST,8, NOTE_FS5,8, REST,8, NOTE_FS5,8, NOTE_E5,8, NOTE_E5,8, NOTE_FS5,8, NOTE_E5,8,
+  NOTE_FS5,8, NOTE_FS5,8,NOTE_D5,8, NOTE_B4,8, REST,8, NOTE_B4,8, REST,8, NOTE_E5,8, 
+  REST,8, NOTE_E5,8, REST,8, NOTE_E5,8, NOTE_GS5,8, NOTE_GS5,8, NOTE_A5,8, NOTE_B5,8,
+  
+  NOTE_A5,8, NOTE_A5,8, NOTE_A5,8, NOTE_E5,8, REST,8, NOTE_D5,8, REST,8, NOTE_FS5,8, 
+  REST,8, NOTE_FS5,8, REST,8, NOTE_FS5,8, NOTE_E5,8, NOTE_E5,8, NOTE_FS5,8, NOTE_E5,8,
+  
+};
+
+// sizeof gives the number of bytes, each int value is composed of two bytes (16 bits)
+// there are two values per note (pitch and duration), so for each note there are four bytes
+int notes = sizeof(melody) / sizeof(melody[0]) / 2;
+
+// this calculates the duration of a whole note in ms
+int wholenote = (60000 * 4) / tempo;
+
+int divider = 0, noteDuration = 0;
+
+
+
+
+
 virtuabotixRTC myRTC(6, 7, 8);       // initialising the DS1302 pins
 LiquidCrystal_I2C lcd(0x3F, 16, 2);  // set the @ of the I2C LCD
 StopWatch sw_secs(StopWatch::MILLIS);
 CountDown CD[3];
 
 Alarmm AL[3];
+uint8_t Ah[3], Am[3], Ad[3];
+const int ARRAY_SIZE = 3;
+const int STARTING_EEPROM_ADDRESS_1 = 10;
+const int STARTING_EEPROM_ADDRESS_2 = 20;
+const int STARTING_EEPROM_ADDRESS_3 = 30;
 
 #define led_pin 13
-#define buzzer_pin 11
 
 const int setButton_pin = 2;
 const int hourButton_pin = 5;
@@ -46,6 +189,7 @@ unsigned long key_value = 0;
 
 unsigned long clockDisplay = millis();
 unsigned long AlarmDisplay = millis();
+
 
 int any = 0;
 
@@ -91,6 +235,7 @@ enum selection mode = Hour;
 
 //*******************SETUP*******************\\.
 void setup() {
+  
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
@@ -99,7 +244,12 @@ void setup() {
   for (int i = 0; i <= 2; i++) {
     AL[i].setON(false);
   }
-  pinMode(buzzer_pin, OUTPUT);
+
+  readAlarmSetFromEEPROM(STARTING_EEPROM_ADDRESS_1, Ad, ARRAY_SIZE);
+  readAlarmSetFromEEPROM(STARTING_EEPROM_ADDRESS_2, Ah, ARRAY_SIZE);
+  readAlarmSetFromEEPROM(STARTING_EEPROM_ADDRESS_3, Am, ARRAY_SIZE);  
+  
+  pinMode(buzzer, OUTPUT);
   irrecv.enableIRIn();
   // myRTC.setDS1302Time(00, 14, 21, 3, 25, 5, 2020);
 }
@@ -113,37 +263,68 @@ void loop() {
     myRTC.updateTime();
     buttonSlectMode();
     lcd.blink();   
-    if (irrecv.decode()) decodeIR();   
+    if (irrecv.decode()) {
+      
+      if (irrecv.decodedIRData.decodedRawData == 0xBA45FF00) {
+        decMode(); 
+      }
+      if (irrecv.decodedIRData.decodedRawData == 0xB847FF00) {
+        incMode(); 
+      }
+    }
+       
     irrecv.resume();   
 
     //digitalWrite(led_pin, HIGH);
   }  
-
+  int thisNote = 0;
   if (millis() - AlarmDisplay > 800) {
     AlarmDisplay = millis();
     for (int i = 0; i <= 2; i++) {
       if (AL[i].state == Alarmm::RUNNING) {
         if (AL[i].CheckAlarm(myRTC.hours, myRTC.minutes, myRTC.dayofweek)) {
           lcd.clear();
-          while (!alarmButton.getSingleDebouncedPress()) {
+          while (!alarmButton.getSingleDebouncedPress() && thisNote < notes * 2) {
             AL[i].setON(false);
+            divider = melody[thisNote + 1];
+            if (divider > 0) {
+              // regular note, just proceed
+              noteDuration = (wholenote) / divider;
+            } else if (divider < 0) {
+              // dotted notes are represented with negative durations!!
+              noteDuration = (wholenote) / abs(divider);
+              noteDuration *= 1.5; // increases the duration in half for dotted notes
+            }
+
+            // we only play the note for 90% of the duration, leaving 10% as a pause
+            tone(buzzer, melody[thisNote], noteDuration * 0.9);
+
+            // Wait for the specief duration before playing the next note.
+            delay(noteDuration);
+
+            // stop the waveform generation before the next note.
+            noTone(buzzer);
             lcd.setCursor(0, 0);
             lcd.print("ALARM " + i);
             lcd.print(" is ON!");
-            tone(buzzer_pin, 3000, 200);            
+            thisNote = thisNote + 2;
           }
-          noTone(buzzer_pin);    
-          lcd.clear();
+              lcd.clear();
         }        
       }
           
     }
   }
+  
   switch (mode) {
     case Hour:
-    setDateTime();   
-      // irrecv.resume(); 
+      irrecv.resume();    
+      
+
+      setDateTime();   
+        // irrecv.resume(); 
       printTime();
+      // setDateTime2();
       break;
     case Timer_Count:
       Timer();
@@ -381,7 +562,7 @@ void Timer() {
   uint32_t start = millis(), remain = 1;
   int d[3], h[3], m[3], s[3];
   lcd.clear();
-  bool enter = true;
+  bool enter;
   int i = 0, thisT = 0;
   
   lcd.setCursor(2, 0);
@@ -393,6 +574,7 @@ void Timer() {
     s[j] = 0;    
   }
   cursorX = 0;
+  if (alarmButton.getSingleDebouncedPress()) enter = true;
   while (CD[i].remaining() >= 0 && i <= 2 && enter == true) {
     if (alarmButton.getSingleDebouncedPress()) enter = false;
     if (timerButton.getSingleDebouncedPress()) {
@@ -545,7 +727,7 @@ void Timer() {
 };
 
 void alarm() {
-  uint8_t Ah[3], Am[3], Ad[3];
+  
   lcd.clear();
   bool enterA = true;
   int i = 0;
@@ -581,10 +763,10 @@ void alarm() {
         
     
 
-
-    Ad[i] = AL[i].AlarmDays;
-    Ah[i] = AL[i].AlarmHours;
-    Am[i] = AL[i].AlarmMins;
+  
+    readAlarmSetFromEEPROM(STARTING_EEPROM_ADDRESS_1, Ad, ARRAY_SIZE);
+    readAlarmSetFromEEPROM(STARTING_EEPROM_ADDRESS_2, Ah, ARRAY_SIZE);
+    readAlarmSetFromEEPROM(STARTING_EEPROM_ADDRESS_3, Am, ARRAY_SIZE);  
     lcd.setCursor(0, 1);
     lcd.print(DayAsString(Ad[i]).substring(0, 3));   
     lcd.setCursor(8, 1);
@@ -663,12 +845,15 @@ void alarm() {
           };
 
       AL[i].setAlarm(Ad[i], Ah[i], Am[i]);
-      Ad[i] = AL[i].AlarmDays;
-      Ah[i] = AL[i].AlarmHours;
-      Am[i] = AL[i].AlarmMins;
+      // Ad[i] = AL[i].AlarmDays;
+      // Ah[i] = AL[i].AlarmHours;
+      // Am[i] = AL[i].AlarmMins;
+      writeAlarmSetIntoEEPROM(STARTING_EEPROM_ADDRESS_1, Ad, ARRAY_SIZE);
+      writeAlarmSetIntoEEPROM(STARTING_EEPROM_ADDRESS_2, Ah, ARRAY_SIZE);
+      writeAlarmSetIntoEEPROM(STARTING_EEPROM_ADDRESS_3, Am, ARRAY_SIZE); 
       if (setButton.getSingleDebouncedRelease()) break;
     };
-      
+     
       
   }
   
@@ -725,142 +910,154 @@ void recvDigits(int nn) {
 
 // Function setDateTime/2 : setting year, month, day, by button or Remote respectively
 void setDateTime() { 
-    setHr = myRTC.hours;
-    setMin = myRTC.minutes;
-    setDOW = myRTC.dayofweek;
-    setDy = myRTC.dayofmonth;
-    setMon = myRTC.month;
-    setYr = myRTC.year;  
-    while (setButton.isPressed()) {
+  bool check;
+  setHr = myRTC.hours;
+  setMin = myRTC.minutes;
+  setDOW = myRTC.dayofweek;
+  setDy = myRTC.dayofmonth;
+  setMon = myRTC.month;
+  setYr = myRTC.year;  
+  while (setButton.isPressed()) {
+
     if (timerButton.getSingleDebouncedPress()) {  // from here ..
       cursorX++;
       if (cursorX > 6) cursorX = 1;
       lcd.blink();
       // lcd.setCursor(cursorX, cursorY);
         // .. to here : we're setting the cursor according to user input
-    }    
+    };
     switch (cursorX) {
-            case 1:
-              // decodeIR(setHr);
-              while (true) {
-                lcd.setCursor(4, 0);       
-                if ((hourButton.getSingleDebouncedPress())){
-                  setHr++; 
-                  if (setHr >= 24UL) setHr = 0UL; 
-                  paddingZero(setHr);           
-                } 
-                if ((stopwatchButton.getSingleDebouncedPress())) {
-                  setHr--;
-                  if (setHr < 0UL) setHr = 23UL;
-                  paddingZero(setHr);
-                }
-                if (setButton.isPressed()) break;
-              };   
-              break;
+        case 1:
+          // decodeIR(setHr);
+          while (true) {
+            lcd.setCursor(4, 0);       
+            if ((hourButton.getSingleDebouncedPress())){
+              setHr++; 
+              if (setHr >= 24UL) setHr = 0UL; 
+              paddingZero(setHr);           
+            } 
+            if ((stopwatchButton.getSingleDebouncedPress())) {
+              setHr--;
+              if (setHr < 0UL) setHr = 23UL;
+              paddingZero(setHr);
+            }
+            if (setButton.isPressed()) break;
+          };   
+          break;
 
-            case 2:
-              // decodeIR(setMin);
-              while (true) {
-                
-                lcd.setCursor(7, 0);
-                if ((hourButton.getSingleDebouncedPress())){
-                  setMin++;
-                  if (setMin >= 60UL) setMin = 0UL;     
-                  paddingZero(setMin);                    
-                } 
-                if ((stopwatchButton.getSingleDebouncedPress())) {
-                  setMin--;
-                  if (setMin < 0UL) setMin = 59UL;
-                  paddingZero(setMin);
-                }
-                if (setButton.isPressed()) break;
-              };
-              break;
-          
-          // Here begins the Date setting
-          
-            case 3:
-              // decodeIR(setDOW);
-              while (true) {
-                
-                lcd.setCursor(0, 1);
-                if ((hourButton.getSingleDebouncedPress())){
-                  setDOW++;
-                  if (setDOW > 7) setDOW = 1;  
-                  lcd.print(DayAsString(setDOW).substring(0, 3));         
-                } 
-                if ((stopwatchButton.getSingleDebouncedPress())) {
-                  setDOW--;
-                  if (setDOW < 1) setDOW = 7;
-                  lcd.print(DayAsString(setDOW).substring(0, 3));
-                }
-                if (setButton.isPressed()) break;
-              };
-              break;
-              
-            case 4:
-              // decodeIR(setDy);
-              while (true) {
-                irrecv.resume();
-                lcd.setCursor(6, 1);
-                if ((hourButton.getSingleDebouncedPress())){
-                  setDy++;   
-                  if (setDy > lastDayOfTheMonth(setMon)) setDy = 1;  
-                  paddingZero(setDy);     
-                } 
-                if ((stopwatchButton.getSingleDebouncedPress())) {
-                  setDy--;
-                  if (setDy < 1) setDy = lastDayOfTheMonth(setMon);
-                  paddingZero(setDy);
-                }
-                if (setButton.isPressed()) break;
-              };
-              break;
-              
-            case 5:
-              //decodeIR(setMon);
-              while (true) {
-                irrecv.resume();
-                lcd.setCursor(9, 1);
-                if ((hourButton.getSingleDebouncedPress())){
-                  setMon++;
-                  if (setMon > 12) setMon = 1;    
-                  paddingZero(setMon);     
-                } 
-                if ((stopwatchButton.getSingleDebouncedPress())) {
-                  setMon--;
-                  if (setMon < 1) setMon = 12;
-                  paddingZero(setMon);
-                }
-                if (setButton.isPressed()) break;
-              };  
-              break;
-
-            case 6:
-              //decodeIR(setYr);
-              while (true) {
-                
-                lcd.setCursor(12, 1);
-                if ((hourButton.getSingleDebouncedPress())){
-                  setYr++;
-                  if (setYr > 2099) setYr = 2000;   
-                  lcd.print(setYr);     
-                } 
-                if ((stopwatchButton.getSingleDebouncedPress())) {
-                  setYr--;
-                  if (setYr < 2000) setYr = 2099;
-                  lcd.print(setYr);
-                }
-                if (setButton.isPressed()) break;
-              };          
-              break;
+        case 2:
+          // decodeIR(setMin);
+          while (true) {
+            
+            lcd.setCursor(7, 0);
+            if ((hourButton.getSingleDebouncedPress())){
+              setMin++;
+              if (setMin >= 60UL) setMin = 0UL;     
+              paddingZero(setMin);                    
+            } 
+            if ((stopwatchButton.getSingleDebouncedPress())) {
+              setMin--;
+              if (setMin < 0UL) setMin = 59UL;
+              paddingZero(setMin);
+            }
+            if (setButton.isPressed()) break;
           };
-      myRTC.setDS1302Time(00, setMin, setHr, setDOW, setDy, setMon, setYr);
+          break;
+      
+      // Here begins the Date setting
+      
+        case 3:
+          // decodeIR(setDOW);
+          while (true) {
+            
+            lcd.setCursor(0, 1);
+            if ((hourButton.getSingleDebouncedPress())){
+              setDOW++;
+              if (setDOW > 7) setDOW = 1;  
+              lcd.print(DayAsString(setDOW).substring(0, 3));         
+            } 
+            if ((stopwatchButton.getSingleDebouncedPress())) {
+              setDOW--;
+              if (setDOW < 1) setDOW = 7;
+              lcd.print(DayAsString(setDOW).substring(0, 3));
+            }
+            if (setButton.isPressed()) break;
+          };
+          break;
+          
+        case 4:
+          // decodeIR(setDy);
+          while (true) {
+            irrecv.resume();
+            lcd.setCursor(6, 1);
+            if ((hourButton.getSingleDebouncedPress())){
+              setDy++;   
+              if (setDy > lastDayOfTheMonth(setMon)) setDy = 1;  
+              paddingZero(setDy);     
+            } 
+            if ((stopwatchButton.getSingleDebouncedPress())) {
+              setDy--;
+              if (setDy < 1) setDy = lastDayOfTheMonth(setMon);
+              paddingZero(setDy);
+            }
+            if (setButton.isPressed()) break;
+          };
+          break;
+          
+        case 5:
+          //decodeIR(setMon);
+          while (true) {
+            irrecv.resume();
+            lcd.setCursor(9, 1);
+            if ((hourButton.getSingleDebouncedPress())){
+              setMon++;
+              if (setMon > 12) setMon = 1;    
+              paddingZero(setMon);     
+            } 
+            if ((stopwatchButton.getSingleDebouncedPress())) {
+              setMon--;
+              if (setMon < 1) setMon = 12;
+              paddingZero(setMon);
+            }
+            if (setButton.isPressed()) break;
+          };  
+          break;
+
+        case 6:
+          //decodeIR(setYr);
+          while (true) {
+            
+            lcd.setCursor(12, 1);
+            if ((hourButton.getSingleDebouncedPress())){
+              setYr++;
+              if (setYr > 2099) setYr = 2000;   
+              lcd.print(setYr);     
+            } 
+            if ((stopwatchButton.getSingleDebouncedPress())) {
+              setYr--;
+              if (setYr < 2000) setYr = 2099;
+              lcd.print(setYr);
+            }
+            if (setButton.isPressed()) break;
+          };          
+          break;
+      };
+
+    
+    
+    
+    
+    // Here begins the Time setting
+    myRTC.setDS1302Time(00, setMin, setHr, setDOW, setDy, setMon, setYr);
+  
   };
+
   lcd.setCursor(0, 0);
   delay(20);  
 ///
 }
+
+
 void setDateTime2() {
   bool check;
   setHr = myRTC.hours;
@@ -869,16 +1066,25 @@ void setDateTime2() {
   setDy = myRTC.dayofmonth;
   setMon = myRTC.month;
   setYr = myRTC.year;
+  
+  irrecv.resume();
   do {  // irRemote
-    if (irrecv.decode())
-      if (irrecv.decodedIRData.decodedRawData == 0xBC43FF00) {  // from here ..
-        cursorX++;
-        if (cursorX > 6) cursorX = 1;
-        lcd.blink();
-        irrecv.resume();
-        // .. to here : we're setting the cursor according to user input
-      };
     irrecv.resume();
+    if (irrecv.decode()) {
+      if (irrecv.decodedIRData.decodedRawData == 0xF609FF00) {
+        setByRemote = false;
+      };  
+
+    if (irrecv.decodedIRData.decodedRawData == 0xBC43FF00) {  // from here ..  
+      cursorX++;
+      if (cursorX > 6) cursorX = 1;
+      lcd.blink();
+      irrecv.resume();
+      // .. to here : we're setting the cursor according to user input
+      }
+    } else  setByRemote = true;
+    irrecv.resume();
+    
     // Here begins the Time setting
     switch (cursorX) {
       case 1:
@@ -1024,15 +1230,11 @@ void setDateTime2() {
                    
         } while (check == false);
         break;
+      
+        
     };
-
-    myRTC.setDS1302Time(00, setMin, setHr, setDOW, setDy, setMon, setYr);
-    irrecv.resume();
-    if (irrecv.decode()) {
-      if (irrecv.decodedIRData.decodedRawData == 0xF609FF00) {
-        setByRemote = false;
-        };
-    } else  setByRemote = true;
+    myRTC.setDS1302Time(00, setMin, setHr, setDOW, setDy, setMon, setYr);        
+    
   } while (setByRemote == true);
   lcd.setCursor(0, 0);
   delay(20);
@@ -1252,9 +1454,22 @@ void decodeIR() {
   }    
 }
 
+void writeAlarmSetIntoEEPROM(int address, uint8_t numbers[], int arraySize) {
+    int addressIndex = address;
+    for (int i = 0; i < arraySize; i++)  {
+      EEPROM.write(addressIndex, numbers[i]);
+      addressIndex++;
+    }
+}
 
 
-
+void readAlarmSetFromEEPROM(int address, uint8_t numbers[], int arraySize) {
+    int addressIndex = address;
+    for (int i = 0; i < arraySize; i++) {
+      numbers[i] = EEPROM.read(addressIndex);
+      addressIndex++;
+    }
+}
 
 
 
